@@ -37,7 +37,7 @@ The code for this step is contained in the second code cell code cell of the [IP
 I used the [OpenCV](http://opencv.org/) library to calibrate the camera used for the images and video. OpenCV provides a `findChessboardCorners` function to detect the corners of a chessboard in an image. Since chessboards have a regular pattern with clear boundaries, they are perfect for finding distortion in a camera image. I used a series of 20 calibration images taken with the camera used to generate the source images. The calibration images are of a chessboard in various positions in thefield of view. I use `findChessboardCorners` to find the (x, y) coordinates of the corners in each image. I also generate a set of perfectly consistent corners (`objp` in the code) on an imaginary flat plane in front of the camera.
 I use OpenCV's `calibrateCamera` function to map the warped real-world camera points to the mathematically perfect `objp` points, resulting in a matrix and coefficients of distortion that can be passed to OpenCV's `undistort` method to remove camera distortion. The result is a simple method (`undistort`) to undistort any image taken with the camer. An uncalibrated and calibrated image are below.
 
-![Uncalibrated chessboard][uncalibrated chessboard]
+[//]: # ![Uncalibrated chessboard][uncalibrated chessboard]
 ![Calibrated chessboard][chessboard calibrated]
 
 The IPython notebook shows each calibration image and its undistorted pair.
