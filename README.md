@@ -113,6 +113,15 @@ I've got a [link here](./video-output/project_video_output.mp4) but you can also
 
 ### Discussion
 
-#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+I've added lots of details, including possible failure cases, above. The best way to go on would be to see where things fail on more challenging data. See [here](https://youtu.be/ogBfWnOgBTk) and [here](https://youtu.be/L9n91HMUopM)
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+In the first link above, you can see several cases where the pipeline fails to perform ideally. At the start, the tar-patched seam in the road is captured better than the actual lane line on the right. In addition, signal from the concrete barrier on the left causes distortion toward the far end of the window. In addition, at the end of the video, the lane appears to shrink.
+
+The smoothing and sanity checks do well at keeping the lane detected near the vehicle; none of the problems actually make the driving particularly unsafe. However, the problems clarify that the original video was made under tame conditions. To improve performance, there's a few directions I'd like to go further:
+* My line detection would benefit from assuming a 3.7 meter-wide lane
+* Sobel filtering should be used more as a fallback and less as a primary source of information
+* I would dynamically deal with the brightness per pane in order to adjust my saturation filter
+
+The second challenge video illustrates several complete failures. Around the sharp turn, the right lane disappears entirely, which my heurisics don't check for. I also have the same saturation issue as in the other challenge video: sometimes there is just no lane detected, meaning that my threshold needs to be more dynamic.
+
+Feel free to clone and improve!
