@@ -8,7 +8,7 @@ The basic algorithm is:
 * Finding regions (again, hopefully lane lines) of the image with strong saturation
 * Combining the gradient and saturation-filtered images and masking away regions unlikely to hold lane lines
 * Perspective transforming the image to an overhead perspective to make parallel line finding easier
-* Applying a series of window to the resulting image to find the centers of greatest pixel intensity
+* Applying a series of windows to the resulting image to find the centers of greatest pixel intensity
 * Finding a second-degree polynomial to best fit the centroid points found above
 * Drawing lines and filling the space between them to cover the lane area
 * Perspective transforming the resulting image back onto the original image
@@ -76,31 +76,38 @@ To transform, I used OpenCV's `getPerspectiveTransform` function, which returns 
 ![Transformed to overhead view][perspective transformed]
 
 The image is not a true overhead perspective, as it is compressed significantly in y in order to hold as much signal as possible. Several more example images are shown in the notebook.
+My math is empirical: I started with the procedure in mind and just tweaked the numbers until they worked.
+
+After all of the steps in the pipeline thus far were applied, I obtained simple images with a strong signal, as shown below.
+
+![Preprocessed image ready for lane detection][preprocessed]
 
 
-#### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
+#### 4. Finding lines
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+With the images fully preprocessed, I move on to the lane detection. This is a two step process. The first step is in the `find_window_centroids` function.
+My algorithm is to split the image into nine horizontal slices and find the center on the left and right of maximum signal in each slice. The details are a little more involved :).
+I start by finding the maximum on left and right in the bottom quarter of the image, with the center of the image excluded to avoid noise. Starting with the resulting centers, I use a much narrower window in progressive slices up the image. If no signal is found, I instead assume a linear progression from the prior center. I also take the mean of the left and right lanes and then adjust the centroids to be equidistant to the original points, ensuring that the lines stay parallel.
+I tinkered with this function quite a bit to get something that would work well over a variety of signals. The result works quite well. One image is below, but I have a set of them in the notebook to check out.
 
-![alt text][image5]
+![Centroids][centroids]
 
-#### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+Once I found the centers of mass of each of the windows, I just use numpy's `polyfit` (see the `find_curve` function) to fit a second-degree polynomial through the centers. With the resulting curves, I draw two lines and fill the space between them on an overlay image, then map the overlay onto the original and perspective shift back to the original perspective. Success!
 
-I did this in lines # through # in my code in `my_other_file.py`
+![Overlay][overlay]
 
-#### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+#### 5. Stats and smoothing
 
-![alt text][image6]
+With my lanes found and plotted, I'm done for static images, but with video I can do better. Using an (approximate) pixels-per-meter measurement, I can calculate the distance to the lane line on either side (`get_distances_from_center`) and the radius of each lane line (`get_curve_radius`). While these stats are useful on their own and are written in each frame of video, they also allow me to perform a sanity-check on the data and to smooth my stats between frames, significantly reducing jitter and allowing me to drop problem frames entirely.
 
 ---
 
-### Pipeline (video)
+### Video
 
-#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
+The final result on a fairly clean video turned out really good, I think.
 
-Here's a [link to my video result](./project_video.mp4)
+I've got a [link here](./video-output/project_video_output.mp4)
 
 ---
 
