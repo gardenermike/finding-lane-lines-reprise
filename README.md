@@ -47,17 +47,16 @@ The IPython notebook shows each calibration image and its undistorted pair.
 I applied a series of transformations to each image to find the lane lines.
 
 #### 1. Undistortion
-For each image, I removed camera distortion using the aforementioned `undistort` method. An example base image and undistorted image are below. Note that without the visual reference of straight lines like those found in the chessboard, it is difficult to see a difference.
+For each image, I removed camera distortion using the aforementioned `undistort` method. An example base image and undistorted image are below. Note that without the visual reference of straight lines like those found in the chessboard, it is difficult to see a difference. However, after perspective shifting, the differences are exacerbated, making the unwarping more useful.
 
 ![Base image with distortion][base image]
 ![Image with distortion removed][undistorted]
 
 
-#### 2. Filters!
+#### 2. Filters
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
-
-![alt text][image3]
+Blah blah blah
+![Image filtering details][filtered combined masked]
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
