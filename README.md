@@ -47,7 +47,7 @@ The IPython notebook shows each calibration image and its undistorted pair.
 I applied a series of transformations to each image to find the lane lines.
 
 #### 1. Undistortion
-For each image, I removed camera distortion using the aforementioned `undistort` method. An example base image and undistorted image are below.
+For each image, I removed camera distortion using the aforementioned `undistort` method. An example base image and undistorted image are below. Note that without the visual reference of straight lines like those found in the chessboard, it is difficult to see a difference.
 
 ![Base image with distortion][base image]
 ![Image with distortion removed][undistorted]
