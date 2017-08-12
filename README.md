@@ -55,10 +55,20 @@ For each image, I removed camera distortion using the aforementioned `undistort`
 
 #### 2. Filters
 
-Blah blah blah
+In the third code cell in the notebook (the `extract_features` function), I apply a [Sobel filter](https://en.wikipedia.org/wiki/Sobel_operator) in the horizontal (x) dimension.  A Sobel filter is approximates the gradient at each point. Since the lane lines are more vertical than horizontal, I am very interested in sudden changes (i.e. a high gradient) in the x dimension. A sudden change in x would suggest a bright vertical object, which is likely to be a lane line!
+I first converted the image from RGB to an [HSL color space](https://en.wikipedia.org/wiki/HSL_and_HSV). Since lane lines are intended to have bright, highly saturated color, checking for lightness and saturation is more useful than grayscale or RGB. I applied the sobel filter to both the S and L channels.
+
+A problem with Sobel filtering that was made clear in the second video is that long joints in the road may have a stronger gradient signal than the lane lines themselves. Again, in a production system, I would probably use an ensemble of inputs, and fall back to sobel filtering if the color-based detection was insufficient,
+
+My primary source of lane line information was applying a threshold to the S channel. Lane lines are, by design, painted with bright colors, so the S channel was a good indicator for both yellow and white lines. A saturation threshold achieved better results in all videos I tried. However, it had its own problems: color tends to wash out at distance, so the signal was insufficiently strong. I found that for the primary video, thresholding the filter at 170 cut out most noise while leaving a strong lane line signal. However, I also found that on other videos the signal was not strong enough at that threshold. For a production system, I would experiment with adjusting the threshold to match the maximum level in the image, in order to balance signal vs noise.
+
+To get the strongest signal, I used a binary OR to combine hit pixels from the Sobel filters in S and L and the color threshold in S. I got an excellent signal with the combined values. I the image below, I show an original image, the three filters mapped to RGB to see their overlap and respective strengths, and the combined filtered image. Note in particular the yellow lines. The yellow is where the two sobel filters intersect, which is almost everywhere that either of them have signal. Leaving out one of them would lose very little information. The blue-only lines are where the saturation provided the only signal. The saturation is nearly sufficient on its own.
+
 ![Image filtering details][filtered combined masked]
 
-#### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
+I also masked out the top of the image, as well as triangles on the left and right and one down the center, in order to remove as much noise as possible.
+
+#### 3. Perspective transformation
 
 The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
 
