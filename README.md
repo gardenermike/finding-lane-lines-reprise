@@ -1,5 +1,5 @@
 
-**Advanced Lane Finding Project**
+## Advanced Lane Finding Project
 
 The [IPython/jupyter notebook](https://github.com/gardenermike/finding-lane-lines-reprise/blob/master/lane_lines.ipynb) in this repo implements a heuristic-based approach to finding lane lines in images or video.
 The basic algorithm is:
@@ -16,7 +16,7 @@ The basic algorithm is:
 
 [//]: # (Image References)
 
-[undistorted]: ./examples/undistorted.png "Undistorted"
+[undistorted]: ./examples/undistorted.jpg "Undistorted"
 [centroids]: ./examples/centroids.png "Centroids"
 [uncalibrated chessboard]: ./camera_cal/calibration1.jpg "Uncalibrated chssboard"
 [chessboard calibrated]: ./examples/chessboard_calibrated.png "Calibrated chessboard"
