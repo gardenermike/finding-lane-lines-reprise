@@ -107,7 +107,7 @@ With my lanes found and plotted, I'm done for static images, but with video I ca
 
 The final result on a fairly clean video turned out really good, I think.
 
-I've got a [link here](./video-output/project_video_output.mp4) but you can also make it easy and just see it on [YouTube](https://youtu.be/WvvEoZHugVk)
+I've got a [link here](./video-output/project_video_output.mp4) but you can also make it easy and just see it on [YouTube](https://youtu.be/TvWl264F2Nk)
 
 ---
 
