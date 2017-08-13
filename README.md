@@ -8,7 +8,7 @@ The basic algorithm is:
 * Finding regions (again, hopefully lane lines) of the image with strong saturation
 * Combining the gradient and saturation-filtered images and masking away regions unlikely to hold lane lines
 * Perspective transforming the image to an overhead perspective to make parallel line finding easier
-* Applying a series of window to the resulting image to find the centers of greatest pixel intensity
+* Applying a series of windows to the resulting image to find the centers of greatest pixel intensity
 * Finding a second-degree polynomial to best fit the centroid points found above
 * Drawing lines and filling the space between them to cover the lane area
 * Perspective transforming the resulting image back onto the original image
@@ -47,76 +47,81 @@ The IPython notebook shows each calibration image and its undistorted pair.
 I applied a series of transformations to each image to find the lane lines.
 
 #### 1. Undistortion
-For each image, I removed camera distortion using the aforementioned `undistort` method. An example base image and undistorted image are below.
+For each image, I removed camera distortion using the aforementioned `undistort` method. An example base image and undistorted image are below. Note that without the visual reference of straight lines like those found in the chessboard, it is difficult to see a difference. However, after perspective shifting, the differences are exacerbated, making the unwarping more useful.
 
 ![Base image with distortion][base image]
 ![Image with distortion removed][undistorted]
 
 
-#### 2. Filters!
+#### 2. Filters
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+In the third code cell in the notebook (the `extract_features` function), I apply a [Sobel filter](https://en.wikipedia.org/wiki/Sobel_operator) in the horizontal (x) dimension.  A Sobel filter is approximates the gradient at each point. Since the lane lines are more vertical than horizontal, I am very interested in sudden changes (i.e. a high gradient) in the x dimension. A sudden change in x would suggest a bright vertical object, which is likely to be a lane line!
+I first converted the image from RGB to an [HSL color space](https://en.wikipedia.org/wiki/HSL_and_HSV). Since lane lines are intended to have bright color, checking for lightness and saturation is more useful than grayscale or RGB. I applied the sobel filter to both the S and L channels.
 
-![alt text][image3]
+A problem with Sobel filtering that was made clear in the second video is that long joints in the road may have a stronger gradient signal than the lane lines themselves. Again, in a production system, I would probably use an ensemble of inputs, and fall back to sobel filtering if the color-based detection was insufficient,
 
-#### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
+My primary source of lane line information was applying a threshold to the S channel. Lane lines are, by design, painted with bright colors, so the S channel was a good indicator for both yellow and white lines. A saturation threshold achieved better results in all videos I tried. However, it had its own problems: color tends to wash out at distance, so the signal was insufficiently strong. I found that for the primary video, thresholding the filter at 170 cut out most noise while leaving a strong lane line signal. However, I also found that on other videos the signal was not strong enough at that threshold. For a production system, I would experiment with adjusting the threshold to match the maximum level in the image, in order to balance signal vs noise.
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
+To get the strongest signal, I used a binary OR to combine hit pixels from the Sobel filters in S and L and the color threshold in S. I got an excellent signal with the combined values. I the image below, I show an original image, the three filters mapped to RGB to see their overlap and respective strengths, and the combined filtered image. Note in particular the yellow lines. The yellow is where the two sobel filters intersect, which is almost everywhere that either of them have signal. Leaving out one of them would lose very little information. The blue-only lines are where the saturation provided the only signal. The saturation is nearly sufficient on its own.
 
-```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
-```
+![Image filtering details][filtered combined masked]
 
-This resulted in the following source and destination points:
+I also masked out the top of the image, as well as triangles on the left and right and one down the center, in order to remove as much noise as possible.
 
-| Source        | Destination   | 
-|:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
+#### 3. Perspective transformation
 
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
+The next step in the pipeline was to transform the image to approximately an overhead perspective. The `perspective_transform` method does the work.
+To transform, I used OpenCV's `getPerspectiveTransform` function, which returns a matrix used to transform an image to a new set of points. I kept the base of the image fixed, and stretched points near the top of the lane to the top of the image, effectively squashing the lane ahead into a flat, overhead view. An example image is below.
 
-![alt text][image4]
+![Transformed to overhead view][perspective transformed]
 
-#### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
+The image is not a true overhead perspective, as it is compressed significantly in y in order to hold as much signal as possible. Several more example images are shown in the notebook.
+My math is empirical: I started with the procedure in mind and just tweaked the numbers until they worked.
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+After all of the steps in the pipeline thus far were applied, I obtained simple images with a strong signal, as shown below.
 
-![alt text][image5]
+![Preprocessed image ready for lane detection][preprocessed]
 
-#### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+#### 4. Finding lines
 
-#### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
+With the images fully preprocessed, I move on to the lane detection. This is a two step process. The first step is in the `find_window_centroids` function.
+My algorithm is to split the image into nine horizontal slices and find the center on the left and right of maximum signal in each slice. The details are a little more involved :).
+I start by finding the maximum on left and right in the bottom quarter of the image, with the center of the image excluded to avoid noise. Starting with the resulting centers, I use a much narrower window in progressive slices up the image. If no signal is found, I instead assume a linear progression from the prior center. I also take the mean of the left and right lanes and then adjust the centroids to be equidistant to the original points, ensuring that the lines stay parallel.
+I tinkered with this function quite a bit to get something that would work well over a variety of signals. The result works quite well. One image is below, but I have a set of them in the notebook to check out.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+![Centroids][centroids]
 
-![alt text][image6]
+Once I found the centers of mass of each of the windows, I just use numpy's `polyfit` (see the `find_curve` function) to fit a second-degree polynomial through the centers. With the resulting curves, I draw two lines and fill the space between them on an overlay image, then map the overlay onto the original and perspective shift back to the original perspective. Success!
+
+![Overlay][overlay]
+
+
+#### 5. Stats and smoothing
+
+With my lanes found and plotted, I'm done for static images, but with video I can do better. Using an (approximate) pixels-per-meter measurement, I can calculate the distance to the lane line on either side (`get_distances_from_center`) and the radius of each lane line (`get_curve_radius`). While these stats are useful on their own and are written in each frame of video, they also allow me to perform a sanity-check on the data and to smooth my stats between frames, significantly reducing jitter and allowing me to drop problem frames entirely.
 
 ---
 
-### Pipeline (video)
+### Video
 
-#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
+The final result on a fairly clean video turned out really good, I think.
 
-Here's a [link to my video result](./project_video.mp4)
+I've got a [link here](./video-output/project_video_output.mp4) but you can also make it easy and just see it on [YouTube](https://youtu.be/WvvEoZHugVk)
 
 ---
 
 ### Discussion
 
-#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+I've added lots of details, including possible failure cases, above. The best way to go on would be to see where things fail on more challenging data. See [here](https://youtu.be/ogBfWnOgBTk) and [here](https://youtu.be/L9n91HMUopM)
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+In the first link above, you can see several cases where the pipeline fails to perform ideally. At the start, the tar-patched seam in the road is captured better than the actual lane line on the right. In addition, signal from the concrete barrier on the left causes distortion toward the far end of the window. In addition, at the end of the video, the lane appears to shrink.
+
+The smoothing and sanity checks do well at keeping the lane detected near the vehicle; none of the problems actually make the driving particularly unsafe. However, the problems clarify that the original video was made under tame conditions. To improve performance, there's a few directions I'd like to go further:
+* My line detection would benefit from assuming a 3.7 meter-wide lane
+* Sobel filtering should be used more as a fallback and less as a primary source of information
+* I would dynamically deal with the brightness per pane in order to adjust my saturation filter
+
+The second challenge video illustrates several complete failures. Around the sharp turn, the right lane disappears entirely, which my heurisics don't check for. I also have the same saturation issue as in the other challenge video: sometimes there is just no lane detected, meaning that my threshold needs to be more dynamic.
+
+Feel free to clone and improve!
